@@ -66,6 +66,23 @@
 </head>
 <body class="h-screen flex flex-col">
 
+    <!-- OVERLAY BURN-OUT (NOUVEAU) -->
+    <div id="burnout-modal" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-95 z-50 flex flex-col items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl p-8 max-w-2xl text-center shadow-2xl border-4 border-red-500">
+            <i class="fa-solid fa-fire-flame-curved text-7xl text-red-500 mb-6 animate-pulse"></i>
+            <h2 class="text-4xl font-black text-red-600 mb-4 tracking-tight uppercase">CRASH SYSTÈME : BURN-OUT !</h2>
+            <p class="text-xl text-gray-800 mb-4 font-semibold">Il est 11h00 du matin, votre cerveau a saturé.</p>
+            <p class="text-lg text-gray-600 mb-6">Vous avez placé <strong>plus de 3 tâches</strong> dans la zone "FAIRE". Un être humain ne peut pas gérer autant de crises simultanées sans exploser en vol. Vous partez en arrêt maladie pour 3 semaines !</p>
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 text-left">
+                <p class="text-red-800 font-bold"><i class="fa-solid fa-lightbulb"></i> La Leçon :</p>
+                <p class="text-red-700 text-sm mt-1">Vous ne pouvez pas être sur tous les fronts. Vous devez déléguer, planifier ou dire "Non". L'email en trop a été renvoyé dans votre Inbox. Revoyez vos priorités !</p>
+            </div>
+            <button onclick="closeBurnout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-xl text-lg transition-colors shadow-lg">
+                <i class="fa-solid fa-rotate-left mr-2"></i> Corriger mon erreur
+            </button>
+        </div>
+    </div>
+
     <header class="bg-[#0f172a] text-white p-4 shadow-md flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
             <i class="fa-solid fa-inbox text-3xl text-[#38bdf8]"></i>
@@ -319,8 +336,28 @@
                 }
                 
                 quadrant.appendChild(draggedElement);
+                
+                // NOUVEAU : VERIFICATION DU BURN-OUT
+                if (quadrant.id === 'q1') {
+                    const q1Items = quadrant.querySelectorAll('.email-card').length;
+                    if (q1Items > 3) {
+                        // Affiche le modal de burn-out
+                        document.getElementById('burnout-modal').classList.remove('hidden');
+                        
+                        // Renvoie l'élément en trop dans l'inbox automatiquement
+                        draggedElement.classList.remove('in-matrix');
+                        draggedElement.style.borderLeftColor = '#38bdf8';
+                        document.getElementById('inbox-container').appendChild(draggedElement);
+                    }
+                }
+
                 updateCounter();
             }
+        }
+
+        // NOUVEAU : FONCTION POUR FERMER LE MODAL
+        function closeBurnout() {
+            document.getElementById('burnout-modal').classList.add('hidden');
         }
 
         function updateCounter() {
