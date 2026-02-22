@@ -71,6 +71,13 @@
         /* Styles pour les résultats */
         .email-card.correct { background-color: #f0fdf4; border-color: #86efac; }
         .email-card.incorrect { background-color: #fef2f2; border-color: #fca5a5; }
+
+        /* Image humoristique container */
+        #score-image-container img, #score-image-container span {
+            max-height: 200px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -81,7 +88,7 @@
             <i class="fa-solid fa-fire-flame-curved text-7xl text-red-500 mb-6 animate-pulse"></i>
             <h2 class="text-4xl font-black text-red-600 mb-4 tracking-tight uppercase">CRASH SYSTÈME : BURN-OUT !</h2>
             <p class="text-xl text-gray-800 mb-4 font-semibold">Il est 11h00 du matin, votre cerveau a saturé.</p>
-            <p class="text-lg text-gray-600 mb-6">Vous avez placé <strong>plus de 3 tâches</strong> dans la zone "FAIRE". Un être humain ne peut pas gérer autant de crises simultanées sans exploser en vol. Vous partez en arrêt maladie pour 3 semaines !</p>
+            <p class="text-lg text-gray-600 mb-6">Vous avez placé <strong>plus de 3 tâches</strong> dans la zone "FAIRE". Un manager humain ne peut pas gérer autant de crises simultanées sans exploser en vol. Vous partez en arrêt maladie pour 3 semaines !</p>
             <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 text-left">
                 <p class="text-red-800 font-bold"><i class="fa-solid fa-lightbulb"></i> La Leçon :</p>
                 <p class="text-red-700 text-sm mt-1">Vous ne pouvez pas être sur tous les fronts. Vous devez déléguer, planifier ou dire "Non". L'email en trop a été renvoyé dans votre Inbox. Revoyez vos priorités !</p>
@@ -93,18 +100,23 @@
     </div>
 
     <!-- OVERLAY SCORE FINAL -->
-    <div id="score-modal" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-95 z-50 flex flex-col items-center justify-center p-4 transition-opacity">
-        <div class="bg-white rounded-2xl p-8 max-w-xl w-full text-center shadow-2xl border-4 border-[#0284c7]">
-            <i class="fa-solid fa-ranking-star text-7xl text-[#0284c7] mb-6"></i>
-            <h2 class="text-4xl font-black text-[#0f172a] mb-2 tracking-tight uppercase">Exercice Terminé !</h2>
-            <p class="text-xl text-gray-600 mb-6 font-semibold">Voici votre score d'efficacité managériale :</p>
+    <div id="score-modal" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-95 z-50 flex flex-col items-center justify-center p-4 transition-opacity overflow-y-auto">
+        <div class="bg-white rounded-2xl p-8 max-w-xl w-full text-center shadow-2xl border-4 border-[#0284c7] my-auto">
+            <i class="fa-solid fa-ranking-star text-5xl text-[#0284c7] mb-4"></i>
+            <h2 class="text-3xl font-black text-[#0f172a] mb-2 tracking-tight uppercase">Exercice Terminé !</h2>
+            <p class="text-lg text-gray-600 mb-4 font-semibold">Voici votre score d'efficacité managériale :</p>
             
-            <div class="flex justify-center items-end gap-2 mb-6">
-                <span id="final-score" class="text-7xl font-black text-[#0284c7] leading-none">0</span>
-                <span class="text-3xl font-bold text-gray-400 mb-2">/ 15</span>
+            <div class="flex justify-center items-end gap-2 mb-4">
+                <span id="final-score" class="text-6xl font-black text-[#0284c7] leading-none">0</span>
+                <span class="text-2xl font-bold text-gray-400 mb-1">/ 15</span>
+            </div>
+
+            <!-- Conteneur pour l'image humoristique générée dynamiquement -->
+            <div id="score-image-container" class="w-full flex justify-center mb-6 font-bold text-xl">
+                <!-- L'image s'insère ici -->
             </div>
             
-            <div id="score-message-box" class="p-4 rounded-xl mb-8">
+            <div id="score-message-box" class="p-4 rounded-xl mb-6">
                 <p id="score-message" class="text-lg font-bold"></p>
             </div>
             
@@ -470,19 +482,24 @@
             document.getElementById('final-score').innerText = score;
             const messageBox = document.getElementById('score-message-box');
             const messageText = document.getElementById('score-message');
+            const imageContainer = document.getElementById('score-image-container');
 
+            // Affichage de l'image et du texte en fonction du score
             if (score === 15) {
-                messageBox.className = "p-4 rounded-xl mb-8 bg-green-100 border border-green-300";
+                messageBox.className = "p-4 rounded-xl mb-6 bg-green-100 border border-green-300";
                 messageText.className = "text-lg font-bold text-green-700";
                 messageText.innerHTML = "Parfait ! Vous êtes un véritable maître du temps et de l'efficacité.";
+                imageContainer.innerHTML = `<img src="https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif" alt="Manager zen et victorieux" class="rounded-lg shadow-md mx-auto border-4 border-green-200">`;
             } else if (score >= 10) {
-                messageBox.className = "p-4 rounded-xl mb-8 bg-blue-100 border border-blue-300";
+                messageBox.className = "p-4 rounded-xl mb-6 bg-blue-100 border border-blue-300";
                 messageText.className = "text-lg font-bold text-blue-700";
                 messageText.innerHTML = "Très bien ! Quelques légères erreurs d'arbitrage, mais le projet est sauf.";
+                imageContainer.innerHTML = `<img src="https://media.giphy.com/media/4PT6v3PQKG6Yg/giphy.gif" alt="Manager soulagé" class="rounded-lg shadow-md mx-auto border-4 border-blue-200">`;
             } else {
-                messageBox.className = "p-4 rounded-xl mb-8 bg-amber-100 border border-amber-300";
+                messageBox.className = "p-4 rounded-xl mb-6 bg-amber-100 border border-amber-300";
                 messageText.className = "text-lg font-bold text-amber-700";
-                messageText.innerHTML = "Attention ! Vos choix de priorités mettent l'équipe en danger.";
+                messageText.innerHTML = "Attention ! Vos choix de priorités mettent l'équipe en danger. Écoutez bien la correction du formateur.";
+                imageContainer.innerHTML = `<img src="https://media.giphy.com/media/NTur7XlVDUdqM/giphy.gif" alt="Panique - This is fine dog" class="rounded-lg shadow-md mx-auto border-4 border-amber-200">`;
             }
 
             document.getElementById('score-modal').classList.remove('hidden');
