@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu - L'Inbox de l'Enfer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f1f5f9; color: #0f172a; overflow-x: hidden; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .email-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #38bdf8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .email-card:active { cursor: grabbing; transform: scale(0.98); }
+        .email-card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        .quadrant {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            height: 100%;
+            min-height: 250px;
+            transition: background-color 0.2s, border-color 0.2s;
+            overflow-y: auto;
+            max-height: 40vh;
+        }
+        .quadrant.drag-over { background-color: rgba(255,255,255,0.5); border-style: solid; }
+        
+        .q1-drop { border-color: #fca5a5; background-color: #fef2f2; }
+        .q1-drop.drag-over { border-color: #ef4444; }
+        
+        .q2-drop { border-color: #86efac; background-color: #f0fdf4; }
+        .q2-drop.drag-over { border-color: #10b981; }
+        
+        .q3-drop { border-color: #fcd34d; background-color: #fffbeb; }
+        .q3-drop.drag-over { border-color: #f59e0b; }
+        
+        .q4-drop { border-color: #cbd5e1; background-color: #f8fafc; }
+        .q4-drop.drag-over { border-color: #64748b; }
+
+        .email-card.in-matrix {
+            border-left-width: 2px;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+        .email-card.in-matrix .snippet { display: none; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <header class="bg-[#0f172a] text-white p-4 shadow-md flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-inbox text-3xl text-[#38bdf8]"></i>
+            <div>
+                <h1 class="text-2xl font-black leading-none">L'Inbox de l'Enfer</h1>
+                <p class="text-sm text-[#94a3b8]">Lundi, 8h45 - Retour de congés</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <span id="counter" class="bg-red-500 text-white font-bold py-1 px-3 rounded-full text-sm">15 à classer</span>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- INBOX (Liste des emails) -->
+        <div class="w-full md:w-1/3 border-r border-[#e2e8f0] bg-white flex flex-col h-full shrink-0">
+            <div class="p-4 bg-[#f8fafc] border-b border-[#e2e8f0]">
+                <p class="font-bold text-[#0f172a]"><i class="fa-solid fa-arrows-up-down-left-right text-[#0284c7]"></i> Glissez-déposez vers la matrice</p>
+            </div>
+            <div class="flex-grow overflow-y-auto p-4" id="inbox-container" ondrop="drop(event)" ondragover="allowDrop(event)">
+                
+                <!-- Email 1 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email1">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">🚨 Monitoring (Auto)</span>
+                        <span class="text-xs font-bold text-red-500">08:42</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">CRITICAL: Crash Serveur Prod</div>
+                    <div class="snippet text-xs text-[#64748b]">La BDD principale ne répond plus. Erreur 500 sur le site client depuis 10 min.</div>
+                </div>
+
+                <!-- Email 2 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email2">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Julie (RH)</span>
+                        <span class="text-xs text-[#64748b]">08:35</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">URGENT: Validation congés</div>
+                    <div class="snippet text-xs text-[#64748b]">J'ai absolument besoin de la validation de ton équipe avant 10h pour la paie !</div>
+                </div>
+
+                <!-- Email 3 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Alex (Top Performeur)</span>
+                        <span class="text-xs text-[#64748b]">08:20</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Entretien informel</div>
+                    <div class="snippet text-xs text-[#64748b]">Il faut qu'on parle de mon évolution. Je m'ennuie sur mes tâches actuelles...</div>
+                </div>
+
+                <!-- Email 4 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email4">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Lucas (Junior)</span>
+                        <span class="text-xs text-[#64748b]">08:15</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Bloqué sur un bug CSS</div>
+                    <div class="snippet text-xs text-[#64748b]">Chef, je n'arrive pas à centrer cette div, tu peux regarder mon code là tout de suite ?</div>
+                </div>
+
+                <!-- Email 5 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email5">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Jira Bot</span>
+                        <span class="text-xs text-[#64748b]">08:00</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">84 tickets mis à jour</div>
+                    <div class="snippet text-xs text-[#64748b]">Résumé de l'activité du week-end. 12 commentaires, 4 statuts modifiés...</div>
+                </div>
+
+                <!-- Email 6 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email6">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Marc (Directeur Général)</span>
+                        <span class="text-xs text-[#64748b]">07:55</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Stratégie Tech 2026</div>
+                    <div class="snippet text-xs text-[#64748b]">Ta roadmap est attendue pour notre séminaire dans 2 mois. Bon retour !</div>
+                </div>
+
+                <!-- Email 7 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email7">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Sarah (Marketing)</span>
+                        <span class="text-xs text-[#64748b]">07:30</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Invitation: Brainstorming</div>
+                    <div class="snippet text-xs text-[#64748b]">Je te convie cet aprem de 14h à 16h. Pas d'ordre du jour précis, on verra sur place !</div>
+                </div>
+
+                <!-- Email 8 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email8">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Fournisseur SaaS</span>
+                        <span class="text-xs text-[#64748b]">07:10</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">⏳ DERNIÈRE CHANCE : -50% !</div>
+                    <div class="snippet text-xs text-[#64748b]">L'offre sur nos licences expire ce soir. Cliquez ici.</div>
+                </div>
+
+                <!-- Email 9 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email9">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Tech Lead</span>
+                        <span class="text-xs text-[#64748b]">06:45</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Dette Technique - Paiement</div>
+                    <div class="snippet text-xs text-[#64748b]">Le code fonctionne, mais il faudra le refactoriser d'ici 6 mois sinon ça va péter.</div>
+                </div>
+
+                <!-- Email 10 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email10">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">David (Commercial)</span>
+                        <span class="text-xs text-[#64748b]">06:15</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">URGENT! Besoin DATA pitch</div>
+                    <div class="snippet text-xs text-[#64748b]">Je vois un client VIP à 11h ! Tu peux m'extraire la BDD vite fait ?</div>
+                </div>
+
+                <!-- Email 11 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email11">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Slack Équipe</span>
+                        <span class="text-xs text-[#64748b]">Ven. 22h</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Débat: Espaces ou Tabulations ?</div>
+                    <div class="snippet text-xs text-[#64748b]">(45 messages) Débat enflammé sur les conventions de code.</div>
+                </div>
+
+                <!-- Email 12 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email12">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Logistique</span>
+                        <span class="text-xs text-[#64748b]">Ven. 18h</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Validation livraison</div>
+                    <div class="snippet text-xs text-[#64748b]">Le livreur attend la signature du manager pour décharger les chaises.</div>
+                </div>
+
+                <!-- Email 13 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email13">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Plateforme Formation</span>
+                        <span class="text-xs text-[#64748b]">Ven. 16h</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Certification expire bientôt</div>
+                    <div class="snippet text-xs text-[#64748b]">Votre badge de Sécurité expire dans 3 mois. Pensez à réviser.</div>
+                </div>
+
+                <!-- Email 14 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email14">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Client MegaCorp (Directeur)</span>
+                        <span class="text-xs font-bold text-red-500">Ven. 14h</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">FUREUR ! Bug prod</div>
+                    <div class="snippet text-xs text-[#64748b]">Rien ne marche ! Si ce n'est pas réglé ce matin, on coupe le contrat. Rappelez-moi !</div>
+                </div>
+
+                <!-- Email 15 -->
+                <div class="email-card" draggable="true" ondragstart="drag(event)" id="email15">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-[#0f172a] text-sm">Marc (Directeur Général)</span>
+                        <span class="text-xs text-[#64748b]">Jeu. 10h</span>
+                    </div>
+                    <div class="font-bold text-[#334155] text-sm mb-1">Dispo pour un café ?</div>
+                    <div class="snippet text-xs text-[#64748b]">Quand tu rentres, j'aimerais ton avis sur la nouvelle machine à café.</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MATRICE EISENHOWER (Zones de drop) -->
+        <div class="w-full md:w-2/3 p-6 flex flex-col h-full">
+            <div class="grid grid-cols-2 grid-rows-2 gap-4 flex-grow relative">
+                
+                <!-- Background Labels -->
+                <div class="absolute -top-5 left-1/4 -translate-x-1/2 font-black text-[#94a3b8] tracking-widest">URGENT</div>
+                <div class="absolute -top-5 left-3/4 -translate-x-1/2 font-black text-[#94a3b8] tracking-widest">NON URGENT</div>
+                <div class="absolute top-1/4 -left-6 -translate-y-1/2 -rotate-90 font-black text-[#94a3b8] tracking-widest">IMPORTANT</div>
+                <div class="absolute top-3/4 -left-6 -translate-y-1/2 -rotate-90 font-black text-[#94a3b8] tracking-widest">NON IMP.</div>
+
+                <!-- Q1 FAIRE -->
+                <div class="quadrant q1-drop" id="q1" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                    <h2 class="font-black text-xl text-red-500 mb-3"><i class="fa-solid fa-fire"></i> FAIRE (Immédiat)</h2>
+                </div>
+
+                <!-- Q2 PLANIFIER -->
+                <div class="quadrant q2-drop" id="q2" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                    <h2 class="font-black text-xl text-emerald-500 mb-3"><i class="fa-solid fa-calendar-check"></i> PLANIFIER (Proactif)</h2>
+                </div>
+
+                <!-- Q3 DELEGUER -->
+                <div class="quadrant q3-drop" id="q3" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                    <h2 class="font-black text-xl text-amber-500 mb-3"><i class="fa-solid fa-share-nodes"></i> DÉLÉGUER (Illusion)</h2>
+                </div>
+
+                <!-- Q4 SUPPRIMER -->
+                <div class="quadrant q4-drop" id="q4" ondrop="drop(event)" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                    <h2 class="font-black text-xl text-slate-500 mb-3"><i class="fa-solid fa-trash-can"></i> SUPPRIMER (Bruit)</h2>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function dragEnter(ev) {
+            ev.preventDefault();
+            if (ev.currentTarget.classList.contains('quadrant')) {
+                ev.currentTarget.classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(ev) {
+            if (ev.currentTarget.classList.contains('quadrant')) {
+                ev.currentTarget.classList.remove('drag-over');
+            }
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            let quadrant = ev.currentTarget;
+            if (quadrant.classList.contains('quadrant') || quadrant.id === 'inbox-container') {
+                quadrant.classList.remove('drag-over');
+                var data = ev.dataTransfer.getData("text");
+                var draggedElement = document.getElementById(data);
+                
+                if(quadrant.id !== 'inbox-container') {
+                    draggedElement.classList.add('in-matrix');
+                    // Style matching quadrant
+                    if(quadrant.id === 'q1') draggedElement.style.borderLeftColor = '#ef4444';
+                    if(quadrant.id === 'q2') draggedElement.style.borderLeftColor = '#10b981';
+                    if(quadrant.id === 'q3') draggedElement.style.borderLeftColor = '#f59e0b';
+                    if(quadrant.id === 'q4') draggedElement.style.borderLeftColor = '#64748b';
+                } else {
+                    draggedElement.classList.remove('in-matrix');
+                    draggedElement.style.borderLeftColor = '#38bdf8';
+                }
+                
+                quadrant.appendChild(draggedElement);
+                updateCounter();
+            }
+        }
+
+        function updateCounter() {
+            const inbox = document.getElementById('inbox-container');
+            const count = inbox.querySelectorAll('.email-card').length;
+            const counterEl = document.getElementById('counter');
+            if (count === 0) {
+                counterEl.textContent = "Inbox Zero !";
+                counterEl.classList.remove('bg-red-500');
+                counterEl.classList.add('bg-green-500');
+            } else {
+                counterEl.textContent = count + " à classer";
+                counterEl.classList.add('bg-red-500');
+                counterEl.classList.remove('bg-green-500');
+            }
+        }
+    </script>
+</body>
+</html>
