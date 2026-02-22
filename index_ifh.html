@@ -67,6 +67,10 @@
             font-size: 0.9em;
         }
         .email-card.in-matrix .snippet { display: none; }
+
+        /* Styles pour les résultats */
+        .email-card.correct { background-color: #f0fdf4; border-color: #86efac; }
+        .email-card.incorrect { background-color: #fef2f2; border-color: #fca5a5; }
     </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -88,6 +92,28 @@
         </div>
     </div>
 
+    <!-- OVERLAY SCORE FINAL -->
+    <div id="score-modal" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-95 z-50 flex flex-col items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl p-8 max-w-xl w-full text-center shadow-2xl border-4 border-[#0284c7]">
+            <i class="fa-solid fa-ranking-star text-7xl text-[#0284c7] mb-6"></i>
+            <h2 class="text-4xl font-black text-[#0f172a] mb-2 tracking-tight uppercase">Exercice Terminé !</h2>
+            <p class="text-xl text-gray-600 mb-6 font-semibold">Voici votre score d'efficacité managériale :</p>
+            
+            <div class="flex justify-center items-end gap-2 mb-6">
+                <span id="final-score" class="text-7xl font-black text-[#0284c7] leading-none">0</span>
+                <span class="text-3xl font-bold text-gray-400 mb-2">/ 15</span>
+            </div>
+            
+            <div id="score-message-box" class="p-4 rounded-xl mb-8">
+                <p id="score-message" class="text-lg font-bold"></p>
+            </div>
+            
+            <button onclick="closeScoreModal()" class="bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold py-3 px-8 rounded-xl text-lg transition-colors shadow-lg w-full">
+                <i class="fa-solid fa-magnifying-glass mr-2"></i> Analyser mes erreurs
+            </button>
+        </div>
+    </div>
+
     <header class="bg-[#0f172a] text-white p-4 shadow-md flex justify-between items-center shrink-0">
         <div class="flex items-center gap-3">
             <i class="fa-solid fa-inbox text-3xl text-[#38bdf8]"></i>
@@ -96,8 +122,8 @@
                 <p class="text-xs md:text-sm text-[#94a3b8]">Lundi, 8h45 - Retour de congés</p>
             </div>
         </div>
-        <div class="text-right">
-            <span id="counter" class="bg-red-500 text-white font-bold py-1 px-3 rounded-full text-sm">15 à classer</span>
+        <div id="counter-container" class="text-right">
+            <span class="bg-red-500 text-white font-bold py-1 px-3 rounded-full text-sm shadow-md">15 à classer</span>
         </div>
     </header>
 
@@ -302,37 +328,46 @@
     <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.min.js"></script>
 
     <script>
+        // --- DICTIONNAIRE DES BONNES RÉPONSES ---
+        const correctAnswers = {
+            'email1': 'q1', // Crash Serveur -> FAIRE
+            'email14': 'q1', // Client VIP Fureur -> FAIRE
+            'email3': 'q2', // Alex Entretien -> PLANIFIER
+            'email6': 'q2', // Stratégie 2026 -> PLANIFIER
+            'email9': 'q2', // Dette Technique -> PLANIFIER
+            'email13': 'q2', // Certification -> PLANIFIER
+            'email2': 'q3', // RH Congés -> DELEGUER
+            'email4': 'q3', // Lucas CSS -> DELEGUER
+            'email10': 'q3', // Commercial Data -> DELEGUER
+            'email12': 'q3', // Livraison chaises -> DELEGUER
+            'email5': 'q4', // Jira Bot -> SUPPRIMER
+            'email7': 'q4', // Réunion sans ordre -> SUPPRIMER
+            'email8': 'q4', // Pub SaaS -> SUPPRIMER
+            'email11': 'q4', // Débat Slack futile -> SUPPRIMER
+            'email15': 'q4' // DG Machine à café -> SUPPRIMER
+        };
+
         // --- GESTION DU "TOUCH / CLICK TO MOVE" ---
         let selectedCard = null;
 
         function handleCardClick(ev, card) {
-            ev.stopPropagation(); // Empêche de déclencher le clic du quadrant parent si on clique sur une carte déjà dedans
-            
-            // Désélectionner la carte précédente
+            ev.stopPropagation(); 
             if (selectedCard) {
                 selectedCard.classList.remove('ring-4', 'ring-[#0284c7]', 'scale-95', 'shadow-lg');
             }
-            
-            // Si on reclique sur la même, on annule
             if (selectedCard === card) {
                 selectedCard = null;
                 return;
             }
-            
-            // Sélectionner la nouvelle
             selectedCard = card;
             selectedCard.classList.add('ring-4', 'ring-[#0284c7]', 'scale-95', 'shadow-lg');
         }
 
         function handleQuadrantClick(quadrant) {
-            if (!selectedCard) return; // Si aucune carte sélectionnée, on ne fait rien
-            
+            if (!selectedCard) return; 
             let card = selectedCard;
-            
-            // Nettoyage visuel de la sélection
             card.classList.remove('ring-4', 'ring-[#0284c7]', 'scale-95', 'shadow-lg');
             selectedCard = null;
-            
             processDropLogic(card, quadrant);
         }
 
@@ -354,13 +389,15 @@
                 quadrant.classList.remove('drag-over');
                 var data = ev.dataTransfer.getData("text");
                 var draggedElement = document.getElementById(data);
-                
                 processDropLogic(draggedElement, quadrant);
             }
         }
 
         // --- LOGIQUE COMMUNE (DRAG ET CLICK) ---
         function processDropLogic(element, quadrant) {
+            // Nettoyage des couleurs de correction si l'utilisateur re-déplace après avoir vu le score
+            element.classList.remove('correct', 'incorrect');
+
             if(quadrant.id !== 'inbox-container') {
                 element.classList.add('in-matrix');
                 if(quadrant.id === 'q1') element.style.borderLeftColor = '#ef4444';
@@ -379,9 +416,8 @@
                 const q1Items = quadrant.querySelectorAll('.email-card').length;
                 if (q1Items > 3) {
                     document.getElementById('burnout-modal').classList.remove('hidden');
-                    
                     // Renvoie l'élément en trop
-                    element.classList.remove('in-matrix');
+                    element.classList.remove('in-matrix', 'correct', 'incorrect');
                     element.style.borderLeftColor = '#38bdf8';
                     document.getElementById('inbox-container').appendChild(element);
                 }
@@ -393,19 +429,67 @@
             document.getElementById('burnout-modal').classList.add('hidden');
         }
 
+        // --- GESTION DU SCORE ET DU COMPTEUR ---
         function updateCounter() {
             const inbox = document.getElementById('inbox-container');
             const count = inbox.querySelectorAll('.email-card').length;
-            const counterEl = document.getElementById('counter');
+            const counterContainer = document.getElementById('counter-container');
+            
             if (count === 0) {
-                counterEl.textContent = "Inbox Zero !";
-                counterEl.classList.remove('bg-red-500');
-                counterEl.classList.add('bg-green-500');
+                // Remplacer le badge par le bouton de validation
+                counterContainer.innerHTML = `
+                    <button onclick="calculateAndShowScore()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full text-sm transition-colors shadow-md animate-pulse border-2 border-white">
+                        <i class="fa-solid fa-check mr-2"></i> Valider mon classement
+                    </button>
+                `;
             } else {
-                counterEl.textContent = count + " à classer";
-                counterEl.classList.add('bg-red-500');
-                counterEl.classList.remove('bg-green-500');
+                // Remettre le badge normal
+                counterContainer.innerHTML = `
+                    <span class="bg-red-500 text-white font-bold py-1 px-3 rounded-full text-sm shadow-md">${count} à classer</span>
+                `;
             }
+        }
+
+        function calculateAndShowScore() {
+            let score = 0;
+            
+            // Vérification de chaque email
+            for (const [emailId, correctQ] of Object.entries(correctAnswers)) {
+                const element = document.getElementById(emailId);
+                if (element && element.parentElement.id === correctQ) {
+                    score++;
+                    element.classList.add('correct');
+                    element.classList.remove('incorrect');
+                } else if (element) {
+                    element.classList.add('incorrect');
+                    element.classList.remove('correct');
+                }
+            }
+
+            // Mise à jour de l'interface Modal
+            document.getElementById('final-score').innerText = score;
+            const messageBox = document.getElementById('score-message-box');
+            const messageText = document.getElementById('score-message');
+
+            if (score === 15) {
+                messageBox.className = "p-4 rounded-xl mb-8 bg-green-100 border border-green-300";
+                messageText.className = "text-lg font-bold text-green-700";
+                messageText.innerHTML = "Parfait ! Vous êtes un véritable maître du temps et de l'efficacité.";
+            } else if (score >= 10) {
+                messageBox.className = "p-4 rounded-xl mb-8 bg-blue-100 border border-blue-300";
+                messageText.className = "text-lg font-bold text-blue-700";
+                messageText.innerHTML = "Très bien ! Quelques légères erreurs d'arbitrage, mais le projet est sauf.";
+            } else {
+                messageBox.className = "p-4 rounded-xl mb-8 bg-amber-100 border border-amber-300";
+                messageText.className = "text-lg font-bold text-amber-700";
+                messageText.innerHTML = "Attention ! Vos choix de priorités mettent l'équipe en danger.";
+            }
+
+            document.getElementById('score-modal').classList.remove('hidden');
+        }
+
+        function closeScoreModal() {
+            document.getElementById('score-modal').classList.add('hidden');
         }
     </script>
 </body>
