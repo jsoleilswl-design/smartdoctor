@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercice - Le Dojo du NON</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #0f172a; color: white; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        
+        .chat-container {
+            flex-grow: 1;
+            background-color: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .message-incoming {
+            background-color: #334155;
+            padding: 15px 20px;
+            border-radius: 0 16px 16px 16px;
+            max-width: 80%;
+            align-self: flex-start;
+            margin-bottom: 20px;
+            position: relative;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideIn 0.4s forwards ease-out;
+        }
+
+        .reply-option {
+            background-color: #0f172a;
+            border: 2px solid #475569;
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .reply-option:hover {
+            border-color: #38bdf8;
+            background-color: rgba(56, 189, 248, 0.1);
+            transform: translateX(5px);
+        }
+
+        .health-bar { height: 20px; background-color: #ef4444; width: 100%; border-radius: 10px; transition: width 0.3s ease-in-out; }
+        
+        @keyframes slideIn {
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .correct-anim { animation: successPulse 0.5s ease-out; }
+        .wrong-anim { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes successPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6 shrink-0">
+        <div>
+            <h1 class="text-3xl font-black text-white flex items-center gap-3">
+                <i class="fa-solid fa-shield-halved text-[#38bdf8]"></i> Le Dojo du NON
+            </h1>
+            <p class="text-[#94a3b8] text-lg">Protégez votre temps en utilisant la méthode A.R.A (Accueillir, Refuser, Alternative)</p>
+        </div>
+        <div class="bg-[#1e293b] p-4 rounded-xl border border-[#334155] w-64">
+            <div class="flex justify-between text-sm font-bold mb-2">
+                <span class="text-[#94a3b8]">Énergie Mentale</span>
+                <span id="health-text" class="text-white">100%</span>
+            </div>
+            <div class="w-full bg-black rounded-full h-3">
+                <div id="health-bar" class="health-bar"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <div class="chat-container max-w-5xl w-full mx-auto">
+        <!-- Chat History -->
+        <div id="chat-history" class="flex-grow p-6 overflow-y-auto flex flex-col">
+            <!-- Messages will be injected here -->
+        </div>
+
+        <!-- Reply Choices Panel -->
+        <div id="reply-panel" class="bg-[#1e293b] border-t border-[#334155] p-6 hidden">
+            <p class="text-[#94a3b8] font-bold uppercase tracking-wider text-sm mb-4">Choisissez votre réponse :</p>
+            <div id="choices-container" class="flex flex-col gap-3">
+                <!-- Choices will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Result Modal -->
+    <div id="result-modal" class="hidden fixed inset-0 bg-[#0f172a] bg-opacity-95 z-50 flex items-center justify-center p-4">
+        <div class="bg-[#1e293b] border-2 border-[#38bdf8] rounded-2xl p-8 max-w-lg text-center shadow-2xl">
+            <div id="result-icon" class="text-6xl mb-4"></div>
+            <h2 id="result-title" class="text-3xl font-black text-white mb-2 uppercase"></h2>
+            <p id="result-desc" class="text-lg text-[#cbd5e1] mb-6"></p>
+            <button onclick="location.reload()" class="bg-[#38bdf8] hover:bg-[#0284c7] text-white font-bold py-3 px-8 rounded-xl text-lg transition-colors w-full">
+                Rejouer
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const scenarios = [
+            {
+                sender: "Thomas (Le dev hyperactif)",
+                message: "Salut chef ! J'ai eu une idée géniale ce week-end pour refaire toute l'interface utilisateur. J'ai commencé à coder, tu as 2 heures là maintenant pour qu'on regarde mon code et qu'on valide l'intégration ?",
+                choices: [
+                    { 
+                        text: "Euh... je suis en plein rapport budgétaire, mais bon montre-moi vite fait, on va essayer de caser ça...", 
+                        type: "paillasson",
+                        feedback: "Posture PAILLASSON ! Vous avez sacrifié votre dossier prioritaire pour une idée non planifiée."
+                    },
+                    { 
+                        text: "Non mais ça va pas ?! On est en plein Sprint, arrête de coder des trucs hors scope et retourne bosser sur tes tickets Jira !", 
+                        type: "herisson",
+                        feedback: "Posture HÉRISSON ! Vous avez protégé votre temps, mais vous avez tué sa créativité et brisé la relation."
+                    },
+                    { 
+                        text: "Super initiative pour l'interface ! Par contre là je dois finir le budget. Mets tes idées sur un doc et on en parle au point créatif de vendredi.", 
+                        type: "pilier",
+                        feedback: "Posture PILIER ! (Accueillir / Refuser / Alternative). Parfait !"
+                    }
+                ]
+            },
+            {
+                sender: "Marc (Le Directeur Général)",
+                message: "Hello ! J'ai vu un outil incroyable sur LinkedIn ce matin. Il me faudrait une présentation complète de l'outil et de ses coûts d'intégration pour la réunion Comex de cet après-midi (14h). C'est urgent !",
+                choices: [
+                    { 
+                        text: "Oui bien sûr Marc, je lâche tout, je te prépare les slides pour 14h.", 
+                        type: "paillasson",
+                        feedback: "PAILLASSON ! Vous avez cédé à la fausse urgence du chef et vous venez de faire exploser la roadmap de votre équipe."
+                    },
+                    { 
+                        text: "Je vois que cet outil t'enthousiasme, mais je ne peux pas faire une étude sérieuse pour 14h aujourd'hui. Je te propose de te faire une synthèse macro pour la semaine prochaine.", 
+                        type: "pilier",
+                        feedback: "PILIER ! Très dur de dire non au DG, mais c'est le rôle du manager de protéger l'équipe des idées de dernière minute."
+                    },
+                    { 
+                        text: "C'est impossible, on est déjà sous l'eau. Le Comex attendra, c'est pas dans nos objectifs annuels de toute façon.", 
+                        type: "herisson",
+                        feedback: "HÉRISSON ! Kamikaze. Le refus est légitime mais la forme est suicidaire."
+                    }
+                ]
+            },
+            {
+                sender: "Sophie (Le Commercial stressé)",
+                message: "URGENT !! Le client VIP exige que le bouton d'achat soit bleu au lieu de vert, sinon il menace de ne pas signer. Modifie ça dans le code en prod immédiatement s'il te plaît !!!",
+                choices: [
+                    { 
+                        text: "Je comprends le stress du client. Mais je ne pousse rien en prod le vendredi. Ouvre un ticket formel et on l'intègre au déploiement de mardi matin.", 
+                        type: "pilier",
+                        feedback: "PILIER ! Vous avez géré la panique émotionnelle du commercial avec un process rationnel."
+                    },
+                    { 
+                        text: "T'es commercial, t'y connais rien en prod ! On touche pas au code le vendredi, dis à ton client de se calmer.", 
+                        type: "herisson",
+                        feedback: "HÉRISSON ! Vous avez déclenché une guerre de tranchée entre la Tech et les Commerciaux."
+                    },
+                    { 
+                        text: "Ok, ok, je me connecte au FTP et je change la couleur en direct pour sauver le contrat...", 
+                        type: "paillasson",
+                        feedback: "PAILLASSON ! Vous venez de contourner tous les process de sécurité par peur du conflit. Risque de crash majeur."
+                    }
+                ]
+            }
+        ];
+
+        let currentScenario = 0;
+        let health = 100;
+        const chatHistory = document.getElementById('chat-history');
+        const replyPanel = document.getElementById('reply-panel');
+        const choicesContainer = document.getElementById('choices-container');
+        const healthBar = document.getElementById('health-bar');
+        const healthText = document.getElementById('health-text');
+
+        function updateHealth(amount) {
+            health += amount;
+            if (health > 100) health = 100;
+            if (health < 0) health = 0;
+            
+            healthBar.style.width = `${health}%`;
+            healthText.innerText = `${health}%`;
+            
+            if (health <= 30) {
+                healthBar.style.backgroundColor = '#ef4444'; // Red
+            } else if (health <= 60) {
+                healthBar.style.backgroundColor = '#f59e0b'; // Yellow
+            } else {
+                healthBar.style.backgroundColor = '#10b981'; // Green
+            }
+        }
+
+        function appendMessage(sender, text, isMe = false, feedback = null, type = null) {
+            const msgDiv = document.createElement('div');
+            
+            if (isMe) {
+                msgDiv.className = 'p-4 rounded-xl max-w-3xl self-end mb-6';
+                if(type === 'pilier') msgDiv.classList.add('bg-emerald-900', 'border', 'border-emerald-500');
+                if(type === 'herisson') msgDiv.classList.add('bg-red-900', 'border', 'border-red-500');
+                if(type === 'paillasson') msgDiv.classList.add('bg-amber-900', 'border', 'border-amber-500');
+
+                msgDiv.innerHTML = `
+                    <div class="font-bold text-white mb-1">Moi (Manager)</div>
+                    <div class="text-white text-lg italic">"${text}"</div>
+                    <div class="mt-3 text-sm font-bold ${type === 'pilier' ? 'text-emerald-300' : 'text-amber-300'} bg-black bg-opacity-30 p-2 rounded">${feedback}</div>
+                `;
+            } else {
+                msgDiv.className = 'message-incoming';
+                msgDiv.innerHTML = `
+                    <div class="font-black text-[#38bdf8] mb-2 flex items-center gap-2"><i class="fa-solid fa-circle-user"></i> ${sender}</div>
+                    <div class="text-white text-lg leading-relaxed">${text}</div>
+                `;
+            }
+            
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function loadScenario() {
+            if (currentScenario >= scenarios.length || health <= 0) {
+                endGame();
+                return;
+            }
+
+            replyPanel.classList.add('hidden');
+            const scenario = scenarios[currentScenario];
+            
+            // Simulate typing delay
+            setTimeout(() => {
+                appendMessage(scenario.sender, scenario.message);
+                
+                setTimeout(() => {
+                    displayChoices(scenario.choices);
+                }, 1000);
+            }, 500);
+        }
+
+        function displayChoices(choices) {
+            choicesContainer.innerHTML = '';
+            
+            // Shuffle choices so Pilier isn't always in the same spot
+            const shuffledChoices = [...choices].sort(() => Math.random() - 0.5);
+
+            shuffledChoices.forEach(choice => {
+                const btn = document.createElement('div');
+                btn.className = 'reply-option';
+                
+                // Add icons based on text content just for flavor
+                let icon = 'fa-comment-dots';
+                btn.innerHTML = `
+                    <i class="fa-regular ${icon} text-[#94a3b8] text-xl"></i>
+                    <span class="text-white font-medium">"${choice.text}"</span>
+                `;
+                
+                btn.onclick = () => handleChoice(choice);
+                choicesContainer.appendChild(btn);
+            });
+            
+            replyPanel.classList.remove('hidden');
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function handleChoice(choice) {
+            replyPanel.classList.add('hidden');
+            
+            let healthChange = 0;
+            if (choice.type === 'paillasson') healthChange = -35;
+            if (choice.type === 'herisson') healthChange = -35;
+            
+            // Append my answer with feedback
+            appendMessage('', choice.text, true, choice.feedback, choice.type);
+            
+            if (choice.type === 'pilier') {
+                document.body.classList.add('correct-anim');
+                setTimeout(() => document.body.classList.remove('correct-anim'), 500);
+            } else {
+                updateHealth(healthChange);
+                document.body.classList.add('wrong-anim');
+                setTimeout(() => document.body.classList.remove('wrong-anim'), 500);
+            }
+
+            currentScenario++;
+            setTimeout(loadScenario, 2500);
+        }
+
+        function endGame() {
+            const modal = document.getElementById('result-modal');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+
+            if (health > 60) {
+                icon.innerHTML = '<i class="fa-solid fa-shield-cat text-emerald-400"></i>';
+                title.innerText = "Maître du Temps !";
+                title.className = "text-3xl font-black text-emerald-400 mb-2 uppercase";
+                desc.innerText = "Félicitations. Vous avez su dire non avec assertivité. Vous protégez votre équipe tout en maintenant d'excellentes relations de travail.";
+            } else if (health > 0) {
+                icon.innerHTML = '<i class="fa-solid fa-battery-half text-amber-400"></i>';
+                title.innerText = "Temps Compromis";
+                title.className = "text-3xl font-black text-amber-400 mb-2 uppercase";
+                desc.innerText = "Vous avez évité le burn-out de justesse, mais vos réponses ont causé des frictions ou laissé entrer trop d'urgences futiles. Pratiquez encore le 'Non Positif' !";
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-skull-crossbones text-red-500"></i>';
+                title.innerText = "Game Over (Burn-out)";
+                title.className = "text-3xl font-black text-red-500 mb-2 uppercase";
+                desc.innerText = "Vous avez perdu tout le contrôle de votre emploi du temps. Vos 'Oui' systématiques ou votre agressivité ont conduit à un effondrement du service.";
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // Start game
+        updateHealth(0); // Initialize color
+        setTimeout(loadScenario, 1000);
+
+    </script>
+</body>
+</html>
