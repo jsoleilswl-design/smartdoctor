@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercice - Delegation Poker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: #f1f5f9; /* Fond clair pour projection */
+            color: #0f172a; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        .card-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .scenario-card {
+            background-color: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            animation: slideUp 0.5s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-header {
+            padding: 30px 40px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Effet de fond pour le header */
+        .profile-header::after {
+            content: '';
+            position: absolute;
+            right: -50px;
+            top: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .avatar {
+            width: 90px;
+            height: 90px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            border: 4px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .btn-style {
+            padding: 20px;
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+            background-color: #f8fafc;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        
+        .btn-style:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.1); 
+        }
+        
+        /* Couleurs des 4 styles */
+        .btn-directif:hover { border-color: #ef4444; background-color: #fef2f2; }
+        .btn-persuasif:hover { border-color: #f59e0b; background-color: #fffbeb; }
+        .btn-participatif:hover { border-color: #0284c7; background-color: #f0f9ff; }
+        .btn-delegatif:hover { border-color: #10b981; background-color: #f0fdf4; }
+
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Result Overlay */
+        #result-overlay { transition: opacity 0.3s; }
+        .result-box { animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Badge niveau délégation */
+        .level-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #0f172a;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER GLOBAL -->
+    <header class="bg-white border-b border-[#e2e8f0] p-6 shadow-sm shrink-0 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-black text-[#0f172a] flex items-center gap-3">
+                <div class="bg-[#0284c7] text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                Delegation Poker
+            </h1>
+            <p class="text-[#64748b] font-medium text-lg mt-1">Adaptez votre style de management au niveau d'autonomie du collaborateur.</p>
+        </div>
+        <div class="bg-[#f1f5f9] py-2 px-5 rounded-full border border-[#cbd5e1] font-bold text-[#334155] text-lg shadow-inner">
+            Dossier <span id="current-step" class="text-[#0284c7] text-xl font-black">1</span> / <span id="total-steps">6</span>
+        </div>
+    </header>
+
+    <!-- MAIN GAME AREA -->
+    <div class="card-container">
+        <div class="scenario-card" id="scenario-card">
+            <!-- Le contenu sera injecté via JavaScript -->
+        </div>
+    </div>
+
+    <!-- OVERLAY RÉSULTAT (Feedback) -->
+    <div id="result-overlay" class="hidden fixed inset-0 bg-[#0f172a]/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="result-box bg-white rounded-2xl p-8 max-w-3xl w-full shadow-2xl relative border-t-8">
+            <div id="result-icon" class="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 rounded-full flex items-center justify-center text-5xl shadow-xl text-white border-4 border-white"></div>
+            
+            <h2 id="result-title" class="text-4xl font-black text-center mt-8 mb-2"></h2>
+            <p id="result-subtitle" class="text-center font-bold text-xl mb-6"></p>
+            
+            <div class="bg-[#f8fafc] border-l-4 border-[#64748b] p-6 rounded-r-xl mb-8 shadow-sm">
+                <p id="result-explanation" class="text-[#334155] text-xl leading-relaxed"></p>
+                <div id="result-level" class="level-badge mt-4">
+                    <!-- Injection du niveau de délégation ici -->
+                </div>
+            </div>
+            
+            <button id="next-btn" onclick="nextScenario()" class="w-full bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold py-4 rounded-xl text-xl transition-colors shadow-lg hover:shadow-xl flex justify-center items-center gap-3">
+                Dossier suivant <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- OVERLAY FIN DE JEU -->
+    <div id="end-overlay" class="hidden fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-8 text-[#0f172a]">
+        <div class="text-center max-w-3xl">
+            <div class="w-32 h-32 bg-[#f0fdf4] rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg border-4 border-[#10b981]">
+                <i class="fa-solid fa-trophy text-6xl text-[#10b981]"></i>
+            </div>
+            <h1 class="text-6xl font-black mb-6 uppercase text-[#0f172a]">Atelier Terminé !</h1>
+            <p class="text-2xl text-[#475569] mb-10 leading-relaxed font-medium">
+                Le bon manager n'a pas un seul style de management figé. Il possède les 4 outils dans sa boîte, et sait choisir le bon (et ajuster son curseur de décision) en fonction de <strong>l'autonomie</strong> de la personne face à une tâche donnée.
+            </p>
+            <button onclick="location.reload()" class="bg-[#0284c7] hover:bg-[#0369a1] text-white font-black py-4 px-10 rounded-full text-xl transition-transform hover:scale-105 shadow-[0_10px_25px_rgba(2,132,199,0.3)]">
+                <i class="fa-solid fa-rotate-right mr-2"></i> Relancer le simulateur
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DONNÉES DU JEU ---
+        const scenarios = [
+            {
+                name: "Lucas (L'Alternant)",
+                role: "Développeur Junior",
+                color: "bg-[#ef4444]", // Rouge
+                icon: "fa-user-graduate",
+                context: "Lucas est très motivé et a soif d'apprendre. Cependant, il vient d'arriver, sort de l'école, et ne connaît absolument pas l'architecture complexe de votre projet.",
+                mission: "Déployer la nouvelle base de données en production sur les serveurs.",
+                correctStyle: "directif",
+                levelHint: "<i class='fa-solid fa-sliders'></i> Niveaux de délégation recommandés : 1 (Annoncer) ou 2 (Vendre)",
+                explanation: "Lucas a une forte motivation mais <strong>zéro compétence technique</strong> sur cette tâche critique. Si vous lui donnez carte blanche (Délégatif) pour une mise en production, c'est le crash assuré. Il faut adopter un style <strong>Directif</strong> : lui dire exactement <em>quoi</em> faire et <em>comment</em> le faire, étape par étape, en le supervisant."
+            },
+            {
+                name: "Sarah (La Rockstar)",
+                role: "Architecte Cloud Senior",
+                color: "bg-[#10b981]", // Vert
+                icon: "fa-user-ninja",
+                context: "Sarah a 10 ans d'expérience. C'est l'experte absolue du domaine dans votre entreprise. Elle est proactive, brillante, et toujours force de proposition.",
+                mission: "Choisir le fournisseur d'infrastructure (AWS, Azure ou GCP) pour le prochain grand projet.",
+                correctStyle: "delegatif",
+                levelHint: "<i class='fa-solid fa-sliders'></i> Niveaux de délégation recommandés : 6 (S'enquérir) ou 7 (Déléguer)",
+                explanation: "Compétence maximale, motivation maximale. Le manager n'a techniquement aucune valeur ajoutée ici. Si vous êtes Directif avec elle, vous faites du micro-management et elle démissionnera. Adoptez le style <strong>Délégatif (Sponsor)</strong> : donnez-lui l'objectif global, le budget, et effacez-vous."
+            },
+            {
+                name: "L'Équipe SRE (En pleine tempête)",
+                role: "Cellule de Crise IT",
+                color: "bg-[#0f172a]", // Sombre (Alerte)
+                icon: "fa-fire-flame-curved",
+                context: "Le datacenter vient de subir une panne critique. Le site e-commerce est hors ligne, l'entreprise perd 10 000€ par minute. Vos ingénieurs SRE courent dans tous les sens, les alertes sonnent, personne ne sait quel service remonter en premier et la panique s'installe.",
+                mission: "Coordonner le plan de reprise d'activité (PRA) pour relancer le site.",
+                correctStyle: "directif",
+                levelHint: "<i class='fa-solid fa-sliders'></i> Niveau de délégation recommandé : 1 (Annoncer)",
+                explanation: "En situation de <strong>crise aiguë et de panique</strong>, le niveau de compétence globale de l'équipe s'effondre sous l'effet du stress. Il n'y a plus de temps pour la concertation (Participatif) ou l'explication (Persuasif). Même face à des experts, le manager doit prendre la barre en mode <strong>Directif (Commandant)</strong> pour prioriser les actions et stopper l'hémorragie."
+            },
+            {
+                name: "Marc (Le Confirmé anxieux)",
+                role: "Développeur Full-Stack",
+                color: "bg-[#f59e0b]", // Jaune
+                icon: "fa-user-tie",
+                context: "Marc est globalement très compétent. Mais le client impose soudainement d'utiliser un tout nouveau langage de programmation qu'il ne maîtrise pas du tout. Marc commence à douter de ses capacités et traîne des pieds.",
+                mission: "Développer le premier module dans ce nouveau langage inconnu.",
+                correctStyle: "persuasif",
+                levelHint: "<i class='fa-solid fa-sliders'></i> Niveaux de délégation recommandés : 2 (Vendre) ou 3 (Consulter)",
+                explanation: "Marc a les bases du métier mais subit une <strong>baisse de compétence temporaire</strong> (nouveau langage), ce qui entraine une chute de sa motivation et de sa confiance. Il faut adopter le style <strong>Persuasif (Coach)</strong> : ne pas le laisser seul (il paniquerait), l'accompagner, lui réexpliquer le <em>pourquoi</em>, et le rassurer."
+            },
+            {
+                name: "Leila (La RSSI prudente)",
+                role: "Experte Cybersécurité",
+                color: "bg-[#8b5cf6]", // Violet
+                icon: "fa-user-shield",
+                context: "Leila est votre Responsable de la Sécurité. Elle est brillante, mais c'est son premier gros budget. Elle doit choisir un prestataire pour un audit d'intrusion (Pentest) à 50 000€. Tétanisée par l'enjeu financier, elle vient vous voir pour que VOUS preniez la décision finale à sa place.",
+                mission: "Valider le choix du prestataire pour le Pentest annuel.",
+                correctStyle: "participatif",
+                levelHint: "<i class='fa-solid fa-sliders'></i> Niveau de délégation recommandé : 5 (Conseiller)",
+                explanation: "Leila a la compétence technique, mais la pression bloque sa motivation (peur de l'erreur). C'est ce qu'on appelle la 'délégation inversée'. Si vous décidez à sa place (Directif), vous la déresponsabilisez. Adoptez le style <strong>Participatif (Conseiller)</strong> : analysez les devis avec elle, donnez votre avis, mais renvoyez-lui la décision finale pour la faire grandir."
+            },
+            {
+                name: "Emma (La Senior blasée)",
+                role: "Tech Lead",
+                color: "bg-[#0284c7]", // Bleu
+                icon: "fa-user-astronaut",
+                context: "Emma sait absolument tout faire techniquement. Mais ces derniers mois, elle est complètement démotivée. Elle fait juste 'ses heures' car elle a l'impression que la direction impose des process sans jamais écouter les gens du terrain.",
+                mission: "Refondre les processus de travail de l'équipe pour gagner en rapidité.",
+                correctStyle: "participatif",
+                levelHint: "<i class='fa-solid fa-sliders'></i> Niveaux de délégation recommandés : 4 (Concerter) ou 5 (Conseiller)",
+                explanation: "Emma est très compétente mais sa <strong>motivation est au plus bas</strong> à cause d'un manque de Sens et d'Autonomie (cf. Daniel Pink). Si vous lui imposez une méthode (Directif), elle partira. Adoptez le style <strong>Participatif</strong> : impliquez-la ('Comment ferais-tu pour régler ça ?'). En la rendant actrice de la solution, vous raviverez sa flamme."
+            }
+        ];
+
+        let currentStep = 0;
+
+        // --- MOTEUR DU JEU ---
+        function renderScenario() {
+            if (currentStep >= scenarios.length) {
+                document.getElementById('end-overlay').classList.remove('hidden');
+                return;
+            }
+
+            const data = scenarios[currentStep];
+            document.getElementById('current-step').innerText = currentStep + 1;
+            document.getElementById('total-steps').innerText = scenarios.length;
+
+            const cardHtml = `
+                <div class="profile-header ${data.color}">
+                    <div class="avatar"><i class="fa-solid ${data.icon}"></i></div>
+                    <div class="z-10">
+                        <h2 class="text-4xl font-black m-0">${data.name}</h2>
+                        <p class="text-xl opacity-90 font-medium mt-1">${data.role}</p>
+                    </div>
+                </div>
+                
+                <div class="p-8 md:p-10 flex-grow flex flex-col justify-between">
+                    <div>
+                        <div class="mb-8">
+                            <p class="text-[#64748b] font-bold uppercase tracking-widest text-sm mb-3"><i class="fa-solid fa-clipboard text-slate-400 mr-2"></i> Le Contexte :</p>
+                            <p class="text-xl leading-relaxed text-[#334155] bg-[#f8fafc] p-5 rounded-xl border border-[#e2e8f0]">${data.context}</p>
+                        </div>
+                        
+                        <div class="bg-[#f0f9ff] border-l-4 border-[#0284c7] rounded-r-xl p-6 mb-10 shadow-sm">
+                            <p class="text-[#0369a1] font-bold uppercase tracking-widest text-sm mb-2"><i class="fa-solid fa-crosshairs mr-2"></i> La Mission à déléguer :</p>
+                            <p class="text-2xl font-bold text-[#0f172a]">${data.mission}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-center font-bold text-[#64748b] mb-5 text-lg uppercase tracking-wider">Quel style de management adoptez-vous ?</p>
+                        
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="btn-style btn-directif group" onclick="checkAnswer('directif')">
+                                <i class="fa-solid fa-bullhorn text-4xl text-[#ef4444] mb-1 group-hover:scale-110 transition-transform"></i>
+                                <span class="font-black text-[#0f172a] text-xl">1. Directif</span>
+                                <span class="text-sm text-[#64748b] font-medium">J'ordonne le Quoi/Comment</span>
+                            </div>
+                            <div class="btn-style btn-persuasif group" onclick="checkAnswer('persuasif')">
+                                <i class="fa-solid fa-person-chalkboard text-4xl text-[#f59e0b] mb-1 group-hover:scale-110 transition-transform"></i>
+                                <span class="font-black text-[#0f172a] text-xl">2. Persuasif</span>
+                                <span class="text-sm text-[#64748b] font-medium">J'explique le Pourquoi</span>
+                            </div>
+                            <div class="btn-style btn-participatif group" onclick="checkAnswer('participatif')">
+                                <i class="fa-solid fa-people-arrows text-4xl text-[#0284c7] mb-1 group-hover:scale-110 transition-transform"></i>
+                                <span class="font-black text-[#0f172a] text-xl">3. Participatif</span>
+                                <span class="text-sm text-[#64748b] font-medium">On décide ensemble</span>
+                            </div>
+                            <div class="btn-style btn-delegatif group" onclick="checkAnswer('delegatif')">
+                                <i class="fa-solid fa-hands-holding-circle text-4xl text-[#10b981] mb-1 group-hover:scale-110 transition-transform"></i>
+                                <span class="font-black text-[#0f172a] text-xl">4. Délégatif</span>
+                                <span class="text-sm text-[#64748b] font-medium">Je donne carte blanche</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const card = document.getElementById('scenario-card');
+            card.innerHTML = cardHtml;
+            // Réinitialisation de l'animation CSS
+            card.style.animation = 'none';
+            card.offsetHeight; 
+            card.style.animation = null; 
+        }
+
+        function checkAnswer(selectedStyle) {
+            const data = scenarios[currentStep];
+            const isCorrect = (selectedStyle === data.correctStyle);
+            
+            const overlay = document.getElementById('result-overlay');
+            const resultBox = overlay.querySelector('.result-box');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const subtitle = document.getElementById('result-subtitle');
+            const explanation = document.getElementById('result-explanation');
+            const levelBadge = document.getElementById('result-level');
+
+            // Mise en forme selon Bonne/Mauvaise réponse
+            if (isCorrect) {
+                resultBox.className = "result-box bg-white rounded-2xl p-8 max-w-3xl w-full shadow-2xl relative border-t-8 border-t-[#10b981]";
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                icon.className = "absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 rounded-full flex items-center justify-center text-5xl shadow-xl text-white border-4 border-white bg-[#10b981]";
+                title.innerText = "Excellent choix !";
+                title.className = "text-4xl font-black text-center mt-8 mb-2 text-[#10b981]";
+                subtitle.innerText = "C'est la posture managériale parfaite ici.";
+                subtitle.className = "text-center font-bold text-xl mb-6 text-[#047857]";
+            } else {
+                resultBox.className = "result-box bg-white rounded-2xl p-8 max-w-3xl w-full shadow-2xl relative border-t-8 border-t-[#ef4444]";
+                icon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                icon.className = "absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 h-24 rounded-full flex items-center justify-center text-5xl shadow-xl text-white border-4 border-white bg-[#ef4444]";
+                title.innerText = "Alerte Management...";
+                title.className = "text-4xl font-black text-center mt-8 mb-2 text-[#ef4444]";
+                
+                const styleNames = {
+                    'directif': '1. Directif (Le Commandant)',
+                    'persuasif': '2. Persuasif (Le Coach)',
+                    'participatif': '3. Participatif (Le Partenaire)',
+                    'delegatif': '4. Délégatif (Le Sponsor)'
+                };
+                
+                subtitle.innerHTML = `La bonne posture était : <span class="text-[#0f172a] bg-[#f1f5f9] px-3 py-1 rounded-md ml-2 border border-[#cbd5e1]">${styleNames[data.correctStyle]}</span>`;
+                subtitle.className = "text-center font-bold text-xl mb-6 text-[#991b1b]";
+            }
+
+            // Remplissage de l'explication et du lien avec l'échelle de délégation
+            explanation.innerHTML = `<strong class="text-[#0f172a] block mb-2 text-2xl">Pourquoi ?</strong> ${data.explanation}`;
+            levelBadge.innerHTML = data.levelHint;
+            
+            overlay.classList.remove('hidden');
+        }
+
+        function nextScenario() {
+            document.getElementById('result-overlay').classList.add('hidden');
+            currentStep++;
+            renderScenario();
+        }
+
+        // Lancement du jeu
+        renderScenario();
+
+    </script>
+</body>
+</html>
