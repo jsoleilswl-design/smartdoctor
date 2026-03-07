@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur : L'I.A. débarque en Prod</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #f1f5f9; color: #0f172a; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .progress-bar-container { background-color: #e2e8f0; border-radius: 9999px; height: 16px; overflow: hidden; border: 2px solid #cbd5e1; }
+        .progress-bar { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease; width: 50%; background-color: #f59e0b; }
+        
+        .scenario-card {
+            background: white; border-radius: 20px; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1);
+            border-top: 8px solid #0284c7; transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .avatar { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 35px; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-shrink: 0; }
+        
+        .choice-btn {
+            background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; text-align: left; cursor: pointer; transition: all 0.2s; display: flex; gap: 15px; align-items: center;
+        }
+        .choice-btn:hover { border-color: #0284c7; background-color: #f0f9ff; transform: translateX(5px); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1); }
+        .choice-icon { width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold; flex-shrink: 0; transition: all 0.2s; }
+        .choice-btn:hover .choice-icon { background: #0284c7; color: white; }
+
+        .phase-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        @keyframes slideOutLeft { to { opacity: 0; transform: translateX(-100%); } }
+        .slide-out { animation: slideOutLeft 0.4s ease-in forwards; }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER: Project Status -->
+    <header class="bg-white border-b border-[#e2e8f0] p-4 md:p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 z-10 relative">
+        <div class="flex items-center gap-4">
+            <div class="bg-[#10b981] w-12 h-12 rounded-lg flex items-center justify-center text-white text-2xl shadow-md">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-black text-[#0f172a] leading-tight">Projet IA Copilot</h1>
+                <p class="text-sm font-bold text-[#64748b] uppercase tracking-wider">Simulateur de Conduite du Changement</p>
+            </div>
+        </div>
+        
+        <div class="w-full md:w-1/3 min-w-[250px]">
+            <div class="flex justify-between text-xs font-black uppercase text-[#64748b] mb-2">
+                <span>Résistance</span>
+                <span>Taux d'Adoption de l'équipe</span>
+                <span>Acceptation</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="adoption-bar" class="progress-bar"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN PLAY AREA -->
+    <main class="flex-grow p-4 md:p-8 flex items-center justify-center overflow-hidden relative">
+        
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 z-0 opacity-5" style="background-image: radial-gradient(#0284c7 2px, transparent 2px); background-size: 30px 30px;"></div>
+
+        <!-- SCENARIO CARD CONTAINER -->
+        <div id="card-container" class="w-full max-w-3xl relative z-10 fade-in">
+            <!-- Content injected via JS -->
+        </div>
+
+    </main>
+
+    <!-- FEEDBACK MODAL (Result after each choice) -->
+    <div id="feedback-modal" class="hidden fixed inset-0 bg-[#0f172a]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col border-0">
+            <div id="feedback-header" class="p-6 text-white text-center">
+                <i id="feedback-icon" class="text-5xl mb-3"></i>
+                <h2 id="feedback-title" class="text-3xl font-black uppercase tracking-tight"></h2>
+            </div>
+            <div class="p-6 md:p-8 bg-[#f8fafc]">
+                <p id="feedback-text" class="text-lg text-[#334155] leading-relaxed mb-6"></p>
+                
+                <div class="bg-white border border-[#e2e8f0] rounded-xl p-4 mb-6">
+                    <p class="text-xs font-bold text-[#64748b] uppercase tracking-wider mb-2"><i class="fa-solid fa-graduation-cap"></i> Analyse Managériale</p>
+                    <p id="feedback-theory" class="text-[#0f172a] font-medium"></p>
+                </div>
+
+                <button onclick="nextScenario()" class="w-full bg-[#0f172a] hover:bg-[#1e293b] text-white font-bold py-4 px-6 rounded-xl text-lg transition-colors shadow-lg flex items-center justify-center gap-2">
+                    Continuer le déploiement <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="hidden fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-8 text-center">
+        <div class="w-32 h-32 bg-[#f0fdf4] rounded-full flex items-center justify-center mb-6 border-4 border-[#10b981] shadow-xl">
+            <i class="fa-solid fa-flag-checkered text-6xl text-[#10b981]"></i>
+        </div>
+        <h1 class="text-5xl font-black text-[#0f172a] mb-4 uppercase">Déploiement Terminé</h1>
+        <p class="text-xl text-[#475569] max-w-2xl mb-8 leading-relaxed">
+            La gestion du changement ne se fait pas en force. Le succès d'un projet I.T. (comme l'arrivée de l'I.A.) dépend à 20% de la technologie, et à 80% de l'accompagnement humain.
+        </p>
+        <div class="bg-[#f8fafc] border border-[#e2e8f0] p-6 rounded-xl max-w-md w-full mb-8 text-left">
+            <p class="font-bold text-[#0f172a] mb-2"><i class="fa-solid fa-check text-[#10b981]"></i> Les clés du succès :</p>
+            <ul class="text-[#475569] space-y-2 text-sm font-medium">
+                <li>1. Rassurer les <strong>Détracteurs</strong> (La Peur).</li>
+                <li>2. Former les <strong>Hésitants</strong> (La Chute de perf).</li>
+                <li>3. S'appuyer sur les <strong>Promoteurs</strong> (Les Quick Wins).</li>
+            </ul>
+        </div>
+        <button onclick="location.reload()" class="bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold py-3 px-8 rounded-full text-lg transition shadow-lg">
+            <i class="fa-solid fa-rotate-right mr-2"></i> Relancer la simulation
+        </button>
+    </div>
+
+    <script>
+        const scenarios = [
+            {
+                character: "Marc",
+                role: "Développeur Senior (Le Détracteur - 20%)",
+                avatarBg: "bg-[#ef4444]",
+                icon: "fa-user-ninja",
+                phase: "Phase : Colère / Déni",
+                phaseColor: "bg-[#fee2e2] text-[#ef4444]",
+                message: "C'est une blague cette histoire d'IA ? C'est juste un gadget de la direction pour nous fliquer et justifier des licenciements dans 6 mois. Je refuse catégoriquement de mettre mon code propriétaire là-dedans !",
+                choices: [
+                    {
+                        text: "C'est une directive de la Direction. Tu l'utilises ou tu seras sanctionné, point barre.",
+                        score: -20,
+                        title: "ERREUR FATALE",
+                        titleClass: "bg-[#ef4444]",
+                        icon: "fa-solid fa-bomb",
+                        feedback: "Vous avez utilisé la force brute (Mode Hérisson). Marc va se braquer, saboter le projet en secret, et potentiellement démissionner avec son expertise.",
+                        theory: "Face à la phase de Colère (Kübler-Ross), l'individu exprime une Peur (perte d'emploi). Imposer le changement sans le 'A' de ADKAR (Awareness/Sens) provoque un rejet total."
+                    },
+                    {
+                        text: "Écoute Marc, fais comme tu veux. Ceux qui veulent l'utiliser avanceront, tant pis pour toi.",
+                        score: -10,
+                        title: "DANGEREUX",
+                        titleClass: "bg-[#f59e0b]",
+                        icon: "fa-solid fa-triangle-exclamation",
+                        feedback: "Vous avez esquivé le conflit (Mode Paillasson). Vous venez de créer une fracture dans l'équipe et un système à deux vitesses.",
+                        theory: "En ignorant un détracteur influent, vous risquez qu'il contamine le 'Ventre mou' (les 60% d'hésitants). Le changement n'aura pas lieu."
+                    },
+                    {
+                        text: "Je comprends tes craintes pour la sécurité et l'emploi. L'outil vise à automatiser le code répétitif, pas l'architecture. Prenons 15 min pour voir ensemble les garanties de confidentialité.",
+                        score: +20,
+                        title: "EXCELLENT",
+                        titleClass: "bg-[#10b981]",
+                        icon: "fa-solid fa-check",
+                        feedback: "Vous avez fait preuve d'empathie tout en restant ferme sur le déploiement. Vous l'avez écouté sans valider son refus.",
+                        theory: "Phase de Colère : Le manager doit écouter l'émotion et y répondre avec des faits rationnels (Méthode ADKAR : Créer le 'Desire' en levant les craintes de sécurité)."
+                    }
+                ]
+            },
+            {
+                character: "Sophie",
+                role: "Développeuse Confirmée (L'Hésitante - 60%)",
+                avatarBg: "bg-[#f59e0b]",
+                icon: "fa-user-tie",
+                phase: "Phase : Dépression / Peur",
+                phaseColor: "bg-[#fef3c7] text-[#d97706]",
+                message: "Je suis complètement perdue avec l'IA... J'ai passé 2 heures à essayer de lui faire générer un test unitaire correct, ça m'a pris plus de temps que si je l'avais codé moi-même. Je perds trop de temps sur mon Sprint.",
+                choices: [
+                    {
+                        text: "C'est pourtant pas compliqué, c'est comme un chat. As-tu bien lu la documentation que j'ai envoyée ?",
+                        score: -15,
+                        title: "MAUVAIS",
+                        titleClass: "bg-[#ef4444]",
+                        icon: "fa-solid fa-xmark",
+                        feedback: "Vous venez de la faire se sentir incompétente. Elle ne posera plus de questions et n'utilisera plus l'outil.",
+                        theory: "Phase de Dépression (La Vallée) : La perte de repères génère un sentiment d'incompétence. Lui reprocher sa lenteur aggrave la situation."
+                    },
+                    {
+                        text: "C'est tout à fait normal de perdre du temps au début ! Ne t'inquiète pas pour la vélocité du Sprint actuel. On va organiser un atelier 'Prompt Engineering' la semaine prochaine.",
+                        score: +20,
+                        title: "PARFAIT",
+                        titleClass: "bg-[#10b981]",
+                        icon: "fa-solid fa-star",
+                        feedback: "Vous l'avez rassurée et vous lui donnez les moyens de réussir. L'adoption va repartir à la hausse.",
+                        theory: "La Vallée du désespoir implique une baisse de productivité temporaire. Le manager doit l'accepter et fournir le 'K' de ADKAR (Knowledge / Formation)."
+                    },
+                    {
+                        text: "Bon, écoute, si ça te bloque trop pour cette semaine, laisse tomber Copilot. Fais tes tests à l'ancienne pour livrer à temps.",
+                        score: -20,
+                        title: "ÉCHEC DU PROJET",
+                        titleClass: "bg-[#ef4444]",
+                        icon: "fa-solid fa-ban",
+                        feedback: "Vous venez d'annuler le changement pour privilégier l'urgence (Loi de Parkinson / Eisenhower).",
+                        theory: "En cédant à la pression du délai (Urgent), vous abandonnez l'objectif stratégique (Important). L'équipe retournera dans sa zone de confort."
+                    }
+                ]
+            },
+            {
+                character: "Karim",
+                role: "Développeur Junior (Le Promoteur - 20%)",
+                avatarBg: "bg-[#10b981]",
+                icon: "fa-user-astronaut",
+                phase: "Phase : Acceptation / Exploration",
+                phaseColor: "bg-[#dcfce7] text-[#15803d]",
+                message: "Chef ! J'ai passé mon week-end à tester l'IA. J'ai même créé un petit script qui lit nos commits et génère automatiquement les Notes de Version (Release Notes). Ça marche du tonnerre !",
+                choices: [
+                    {
+                        text: "C'est bien Karim, mais on n'est pas payés pour jouer avec le week-end. Retourne sur tes tickets urgents s'il te plaît.",
+                        score: -20,
+                        title: "DÉMOTIVANT",
+                        titleClass: "bg-[#ef4444]",
+                        icon: "fa-solid fa-thumbs-down",
+                        feedback: "Vous venez de doucher son enthousiasme (Baisse de motivation 3.0 / Autonomie).",
+                        theory: "Karim est un 'Early Adopter' (Les 20% d'Alliés). Si vous le bloquez, vous tuez la dynamique d'adoption au lieu de vous en servir."
+                    },
+                    {
+                        text: "Génial ! Par contre, avant de montrer ça aux autres, envoie-moi le code pour que je valide si c'est conforme aux procédures de l'entreprise.",
+                        score: -5,
+                        title: "MICRO-MANAGEMENT",
+                        titleClass: "bg-[#f59e0b]",
+                        icon: "fa-solid fa-magnifying-glass",
+                        feedback: "C'est une approche trop bureaucratique qui va ralentir l'élan d'innovation.",
+                        theory: "Niveau de délégation trop bas (Niveau 2 ou 3). Laissez l'équipe explorer la phase 4 de Kübler-Ross sans la brider avec trop de contrôle."
+                    },
+                    {
+                        text: "Excellent travail ! Peux-tu faire une mini-démo de 10 min à toute l'équipe demain matin ? Ton retour d'expérience concret va vraiment nous aider.",
+                        score: +20,
+                        title: "COUP DE GÉNIE",
+                        titleClass: "bg-[#10b981]",
+                        icon: "fa-solid fa-crown",
+                        feedback: "Vous utilisez l'enthousiasme de Karim pour convaincre le reste de l'équipe (les Hésitants). C'est la stratégie gagnante.",
+                        theory: "Règle des 20/60/20 : Appuyez-vous sur vos 20% de promoteurs pour faire basculer les 60% du ventre mou. Kotter étape 6 : Valoriser les victoires rapides (Quick Wins) !"
+                    }
+                ]
+            }
+        ];
+
+        let currentIndex = 0;
+        let adoptionScore = 50; // Départ à 50%
+
+        const cardContainer = document.getElementById('card-container');
+        const adoptionBar = document.getElementById('adoption-bar');
+
+        function updateBar(score) {
+            adoptionScore += score;
+            if(adoptionScore > 100) adoptionScore = 100;
+            if(adoptionScore < 0) adoptionScore = 0;
+            
+            adoptionBar.style.width = adoptionScore + '%';
+            if(adoptionScore < 30) adoptionBar.style.backgroundColor = '#ef4444';
+            else if(adoptionScore < 70) adoptionBar.style.backgroundColor = '#f59e0b';
+            else adoptionBar.style.backgroundColor = '#10b981';
+        }
+
+        function renderScenario() {
+            if (currentIndex >= scenarios.length) {
+                setTimeout(() => { document.getElementById('end-screen').classList.remove('hidden'); }, 500);
+                return;
+            }
+
+            const s = scenarios[currentIndex];
+            
+            // Randomize choices order
+            const shuffledChoices = [...s.choices].sort(() => Math.random() - 0.5);
+
+            let choicesHTML = '';
+            shuffledChoices.forEach((choice, index) => {
+                choicesHTML += `
+                    <button class="choice-btn w-full group" onclick="handleChoice(${s.choices.indexOf(choice)})">
+                        <div class="choice-icon">
+                            <span>${String.fromCharCode(65 + index)}</span>
+                        </div>
+                        <div class="text-[#334155] font-medium leading-snug">${choice.text}</div>
+                    </button>
+                `;
+            });
+
+            cardContainer.innerHTML = `
+                <div class="scenario-card p-6 md:p-8">
+                    <div class="flex items-center gap-4 mb-6 pb-6 border-b border-[#e2e8f0]">
+                        <div class="avatar ${s.avatarBg}">
+                            <i class="fa-solid ${s.icon}"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-black text-[#0f172a]">${s.character}</h3>
+                            <p class="text-[#64748b] font-semibold">${s.role}</p>
+                            <div class="mt-2 inline-block phase-badge ${s.phaseColor}">${s.phase}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#f8fafc] p-6 rounded-xl border border-[#e2e8f0] mb-8 relative">
+                        <i class="fa-solid fa-quote-left absolute top-4 left-4 text-3xl text-[#cbd5e1] opacity-50"></i>
+                        <p class="text-xl text-[#0f172a] font-medium italic relative z-10 pl-8 leading-relaxed">
+                            "${s.message}"
+                        </p>
+                    </div>
+
+                    <p class="font-bold text-[#64748b] uppercase tracking-widest text-sm mb-4"><i class="fa-solid fa-comment-dots text-[#0284c7]"></i> Votre réponse de Manager :</p>
+                    <div class="space-y-3">
+                        ${choicesHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleChoice(choiceIndex) {
+            const s = scenarios[currentIndex];
+            const choice = s.choices[choiceIndex];
+
+            // Animate card out
+            cardContainer.classList.remove('fade-in');
+            cardContainer.classList.add('slide-out');
+
+            setTimeout(() => {
+                // Update Logic
+                updateBar(choice.score);
+
+                // Show Feedback Modal
+                const fModal = document.getElementById('feedback-modal');
+                const fHeader = document.getElementById('feedback-header');
+                const fIcon = document.getElementById('feedback-icon');
+                const fTitle = document.getElementById('feedback-title');
+                const fText = document.getElementById('feedback-text');
+                const fTheory = document.getElementById('feedback-theory');
+
+                fHeader.className = `p-6 text-white text-center ${choice.titleClass}`;
+                fIcon.className = `text-5xl mb-3 ${choice.icon}`;
+                fTitle.innerText = choice.title;
+                fText.innerHTML = `<strong>Effet :</strong> ${choice.feedback}`;
+                fTheory.innerText = choice.theory;
+
+                fModal.classList.remove('hidden');
+            }, 400);
+        }
+
+        function nextScenario() {
+            document.getElementById('feedback-modal').classList.add('hidden');
+            currentIndex++;
+            
+            // Reset animations
+            cardContainer.classList.remove('slide-out');
+            void cardContainer.offsetWidth; // trigger reflow
+            cardContainer.classList.add('fade-in');
+            
+            renderScenario();
+        }
+
+        // Init
+        updateBar(0);
+        renderScenario();
+
+    </script>
+</body>
+</html>
